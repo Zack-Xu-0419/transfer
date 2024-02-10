@@ -1,0 +1,177 @@
+version: "3.1"
+
+volumes:
+  ssl-game-controller:
+
+services:
+  ssl-game-controller:
+    build:
+      context: .
+      dockerfile: ./cmd/ssl-game-controller/Dockerfile
+    command:
+      - "-visionAddress"
+      - "224.5.23.2:10020"
+      - "-trackerAddress"
+      - "224.5.23.2:11010"
+      - "-publishAddress"
+      - "224.5.23.1:11003"
+      - "-address"
+      - ":8081"
+    volumes:
+      - "ssl-game-controller:/config:rw"
+    network_mode: "${NETWORK_MODE}"
+    ports:
+      - "8081:8081/tcp"
+    profiles:
+      - full
+
+  ssl-vision-client:
+    image: "robocupssl/ssl-vision-client:1.7.2"
+    command:
+      - "-address"
+      - ":8082"
+      - "-visionAddress"
+      - "224.5.23.2:10020"
+      - "-trackedAddress"
+      - "224.5.23.2:11010"
+    network_mode: "${NETWORK_MODE}"
+    ports:
+      - "8082:8082/tcp"
+
+  ssl-status-board:
+    image: "robocupssl/ssl-status-board:2.10.3"
+    command:
+      - "-address"
+      - ":8083"
+      - "-refereeAddress"
+      - "224.5.23.1:11003"
+    network_mode: "${NETWORK_MODE}"
+    ports:
+      - "8083:8083/tcp"
+
+  ssl-remote-control-yellow:
+    image: "robocupssl/ssl-remote-control:1.1.2"
+    command:
+      - "-address"
+      - ":8084"
+      - "-refereeAddress"
+      - "224.5.23.1:11003"
+      - "-team"
+      - "YELLOW"
+    network_mode: "${NETWORK_MODE}"
+    ports:
+      - "8084:8084/tcp"
+
+  ssl-remote-control-blue:
+    image: "robocupssl/ssl-remote-control:1.1.2"
+    command:
+      - "-address"
+      - ":8085"
+      - "-refereeAddress"
+      - "224.5.23.1:11003"
+      - "-team"
+      - "BLUE"
+    network_mode: "${NETWORK_MODE}"
+    ports:
+      - "8085:8085/tcp"
+
+  ssl-team-client-yellow:
+    image: "ssl-team-client"
+    build:
+      context: "."
+      dockerfile: cmd/ssl-team-client/Dockerfile
+    command:
+      - "-teamColor"
+      - "YELLOW"
+      - "-teamName"
+      - "Unknown"
+      - "-udpAddress"
+      - "224.5.23.1:11003"
+    network_mode: "${NETWORK_MODE}"
+    profiles:
+      - team-client
+
+  ssl-team-client-blue:
+    image: "ssl-team-client"
+    build:
+      context: "."
+      dockerfile: cmd/ssl-team-client/Dockerfile
+    command:
+      - "-teamColor"
+      - "BLUE"
+      - "-teamName"
+      - "Unknown"
+      - "-udpAddress"
+      - "224.5.23.1:11003"
+    network_mode: "${NETWORK_MODE}"
+    profiles:
+      - team-client
+
+  autoref-tigers:
+    image: "tigersmannheim/auto-referee:1.2.0"
+    command:
+      - "-a" # active mode (connect to GC)
+      - "-hl" # headless
+      - "--visionAddress"
+      - "224.5.23.2:10020"
+      - "--refereeAddress"
+      - "224.5.23.1:11003"
+      - "--trackerAddress"
+      - "224.5.23.2:11010"
+    network_mode: "${NETWORK_MODE}"
+
+  autoref-erforce:
+    image: "roboticserlangen/autoref:commit-6f15f574ea80"
+    command:
+      - "--vision-port"
+      - "10020"
+      - "--tracker-port"
+      - "11010"
+      - "--gc-port"
+      - "11003"
+    network_mode: "${NETWORK_MODE}"
+
+  ssl-log-player:
+    image: "robocupssl/ssl-log-player:1.5.1"
+    command:
+      - "-file"
+      - "/data/BOT_KICKED_BALL_TOO_FAST/linear-kick.log"
+      - "-vision-address"
+      - "224.5.23.2:10020"
+      - "-referee-enabled"
+      - "false"
+      - "-vision-tracker-enabled"
+      - "false"
+    network_mode: "${NETWORK_MODE}"
+    volumes:
+      - "./autoref-tests/:/data"
+    profiles:
+      - autoref-tests
+
+  simulator:
+    image: "roboticserlangen/simulatorcli:commit-6a4e1c06533b"
+    environment:
+      GEOMETRY: "2020"
+      REALISM: "RC2021"
+    network_mode: "${NETWORK_MODE}"
+    ports:
+      - "10300/udp"
+      - "10301/udp"
+      - "10302/udp"
+    profiles:
+      - sim
+
+  ssl-simulation-controller:
+    image: "robocupssl/ssl-simulation-controller:0.12.0"
+    command:
+      - "-refereeAddress"
+      - "224.5.23.1:11003"
+      - "-visionAddress"
+      - "224.5.23.2:10020"
+      - "-trackerAddress"
+      - "224.5.23.2:11010"
+      - "-simControlPort"
+      - "10300"
+    network_mode: "${NETWORK_MODE}"
+    profiles:
+      - sim

@@ -1,0 +1,10 @@
+*
+!cmd
+!frontend
+!internal
+!pkg
+!go.mod
+!go.sum
+
+frontend/node_modules
+frontend/dist
